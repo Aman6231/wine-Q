@@ -1,13 +1,58 @@
-import pandas as pd
-import numpy as np
-from fastapi import FastAPI
-from pydantic import BaseModel
+import os
+
 import joblib
+import pandas as pd
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
 from connection import get_connection
 
 model = joblib.load("mero_model_pipeline.joblib")
 
+
+def get_allowed_origins():
+    origins_env = os.getenv("CORS_ALLOW_ORIGINS", "*")
+    origins = [origin.strip() for origin in origins_env.split(",") if origin.strip()]
+    return origins if origins else ["*"]
+
+
+def ensure_table_exists():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS wineQ_table (
+            fixed_acidity REAL,
+            volatile_acidity REAL,
+            citric_acid REAL,
+            residual_sugar REAL,
+            chlorides REAL,
+            free_sulfur_dioxide REAL,
+            total_sulfur_dioxide REAL,
+            density REAL,
+            pH REAL,
+            sulphates REAL,
+            alcohol REAL,
+            Id INTEGER,
+            wine_quality INTEGER,
+            prediction_ID INTEGER PRIMARY KEY AUTOINCREMENT
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_allowed_origins(),
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class WineData(BaseModel):
@@ -28,7 +73,7 @@ class WineData(BaseModel):
 @app.post("/predict")
 def predict_quality(data: WineData):
 
-    df = pd.DataFrame([data.dict()])
+    df = pd.DataFrame([data.model_dump()])
 
     df.columns = [
         "fixed acidity",
@@ -89,6 +134,11 @@ def predict_quality(data: WineData):
     return {"predicted_quality": int(prediction[0])}
 
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
 @app.get("/predictions")
 def get_predictions():
     conn = get_connection()
@@ -96,6 +146,7 @@ def get_predictions():
 
     cursor.execute("SELECT * FROM wineQ_table")
     rows = cursor.fetchall()
+    conn.close()
 
     return {
         "data": [
@@ -118,4 +169,7 @@ def get_predictions():
         ]
     }
 
-    conn.close()
+
+@app.on_event("startup")
+def startup_event():
+    ensure_table_exists()

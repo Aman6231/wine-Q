@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: wine-q-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: CORS_ALLOW_ORIGINS
+        value: https://wine-q-frontend.onrender.com
+
+  - type: static
+    name: wine-q-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://wine-q-api.onrender.com
