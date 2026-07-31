@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:8000'
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? '' : 'http://localhost:8000')
+).replace(/\/$/, '')
 
 const FIELD_CONFIG = [
   { key: 'fixed_acidity', label: 'Fixed Acidity', type: 'number', step: 'any' },
@@ -32,7 +34,7 @@ function App() {
   const [predictionResult, setPredictionResult] = useState(null)
   const [predictions, setPredictions] = useState([])
 
-  const endpointLabel = useMemo(() => API_BASE_URL, [])
+  const endpointLabel = useMemo(() => API_BASE_URL || 'Same origin', [])
 
   const fetchHistory = async () => {
     setIsLoadingHistory(true)

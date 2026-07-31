@@ -28,5 +28,6 @@ Wine-Q predicts wine quality using a FastAPI backend and a React (Vite) frontend
 - This repository includes `render.yaml` with:
   - `wine-q-api` as a Python web service
   - `wine-q-frontend` as a static site
+- The backend service also builds `frontend/dist` and serves it at `/`, so opening the backend URL can load the UI directly.
 - Update service URLs in `render.yaml` if your Render service names differ.
 - Set `CORS_ALLOW_ORIGINS` on the backend to your frontend URL.

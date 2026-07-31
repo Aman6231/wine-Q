@@ -1,14 +1,17 @@
 import os
+from pathlib import Path
 
 import joblib
 import pandas as pd
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from connection import get_connection
 
 model = joblib.load("mero_model_pipeline.joblib")
+frontend_dist_dir = Path(__file__).resolve().parent / "frontend" / "dist"
 
 
 def get_allowed_origins():
@@ -173,3 +176,12 @@ def get_predictions():
 @app.on_event("startup")
 def startup_event():
     ensure_table_exists()
+
+
+if (frontend_dist_dir / "index.html").exists():
+    app.mount("/", StaticFiles(directory=str(frontend_dist_dir), html=True), name="frontend")
+else:
+
+    @app.get("/")
+    def root():
+        return {"message": "Wine-Q API is running", "health": "/health"}
